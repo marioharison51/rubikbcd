@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Rubik BCD" />
+  <link rel="manifest" href="/static/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/static/icon.svg" />
+  <title>Rubik BCD</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, var(--bg), #1e293b);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    }
+    .card {
+      width: min(100%, 900px);
+      background: rgba(17, 24, 39, 0.9);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+      padding: 32px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    }
+    h1 { margin: 0 0 8px; font-size: 2rem; }
+    p { color: var(--muted); margin: 0 0 24px; }
+    .auth-panel {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .auth-panel form {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    input {
+      padding: 10px 12px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      background: #0f172a;
+      color: var(--text);
+    }
+    button {
+      padding: 10px 12px;
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #082f49;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .status {
+      color: var(--muted);
+      min-height: 20px;
+      font-size: 0.95rem;
+    }
+    .cube-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 320px;
+    }
+    .cube {
+      width: 220px;
+      height: 220px;
+      background: linear-gradient(145deg, #f8fafc, #cbd5e1);
+      border-radius: 24px;
+      box-shadow: inset 0 0 0 8px #64748b, 0 10px 30px rgba(0,0,0,0.25);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 16px;
+    }
+    .face {
+      border-radius: 10px;
+      background: #f8fafc;
+      border: 2px solid #94a3b8;
+    }
+    .face:nth-child(1), .face:nth-child(2), .face:nth-child(3) { background: #ffffff; }
+    .face:nth-child(4) { background: #22c55e; }
+    .face:nth-child(5) { background: #ef4444; }
+    .face:nth-child(6) { background: #3b82f6; }
+    .face:nth-child(7) { background: #facc15; }
+    .face:nth-child(8) { background: #fb923c; }
+    .face:nth-child(9) { background: #8b5cf6; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Rubik BCD</h1>
+    <p>Inscrivez-vous une seule fois, puis jouez localement sans dépendre d’Internet.</p>
+    <section class="auth-panel">
+      <form id="auth-form">
+        <input id="nom" placeholder="Nom" required />
+        <input id="email" type="email" placeholder="Email" required />
+        <input id="password" type="password" placeholder="Mot de passe" required />
+        <button type="submit">S'inscrire / Se connecter</button>
+      </form>
+      <div id="status" class="status">Prêt à créer votre compte local.</div>
+    </section>
+    <section class="cube-stage">
+      <div class="cube" aria-label="Cube de Rubik">
+        <div class="face"></div><div class="face"></div><div class="face"></div>
+        <div class="face"></div><div class="face"></div><div class="face"></div>
+        <div class="face"></div><div class="face"></div><div class="face"></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+      });
+    }
+
+    const form = document.getElementById('auth-form');
+    const status = document.getElementById('status');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const nom = document.getElementById('nom').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        const registerRes = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nom, email, password })
+        });
+
+        const registerData = await registerRes.json();
+        if (!registerRes.ok && registerData.error !== 'Email déjà utilisé') {
+          throw new Error(registerData.error || 'Erreur d’inscription');
+        }
+
+        const loginRes = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const loginData = await loginRes.json();
+        if (!loginRes.ok) throw new Error(loginData.error || 'Erreur de connexion');
+
+        localStorage.setItem('rubikbcd_token', loginData.access_token);
+        status.textContent = `Bienvenue ${loginData.user.nom || email} ! Vous pouvez maintenant jouer hors ligne.`;
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    });
+  </script>
+</body>
+</html>
