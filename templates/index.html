@@ -48,6 +48,15 @@
       align-items: center;
       margin-bottom: 24px;
     }
+    .pill {
+      display: inline-block;
+      background: rgba(56, 189, 248, 0.18);
+      color: #7dd3fc;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
     .hero h1 { font-size: 2.2rem; }
     .hero p { margin-bottom: 0; }
     .auth-panel {
@@ -118,6 +127,11 @@
     }
     .actions button {
       min-width: 92px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .actions button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(56, 189, 248, 0.2);
     }
     .cube {
       width: 220px;
@@ -129,6 +143,13 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 10px;
       padding: 16px;
+      transform: rotateX(18deg) rotateY(-18deg);
+      transition: transform 0.3s ease;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: rotateX(18deg) rotateY(-18deg) translateY(0); }
+      50% { transform: rotateX(18deg) rotateY(-18deg) translateY(-6px); }
     }
     .face {
       border-radius: 10px;
@@ -148,6 +169,7 @@
   <main class="card">
     <section class="hero">
       <div>
+        <span class="pill">MVP Mobile • Local First</span>
         <h1>Rubik BCD</h1>
         <p>Un cube de Rubik moderne, pensé pour être joué sur mobile, avec une première inscription locale et une expérience plus fluide.</p>
       </div>
