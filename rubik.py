@@ -152,7 +152,21 @@ def play_rubik_move():
 def profil():
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
-    return jsonify(user.to_dict()), 200
+    scores = GameScore.query.filter_by(user_id=current_user_id).order_by(GameScore.id.desc()).limit(10).all()
+    return jsonify({
+        "user": user.to_dict(),
+        "scores": [score.to_dict() for score in scores],
+        "best_score": min([score.move_count for score in scores], default=0),
+        "solved_count": sum(1 for score in scores if score.is_solved)
+    }), 200
+
+
+@app.route("/api/scores", methods=['GET'])
+@jwt_required()
+def scores():
+    current_user_id = get_jwt_identity()
+    user_scores = GameScore.query.filter_by(user_id=current_user_id).order_by(GameScore.id.desc()).all()
+    return jsonify([score.to_dict() for score in user_scores]), 200
 
 
 # 6. LANCEMENT

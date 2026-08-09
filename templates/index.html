@@ -32,7 +32,7 @@
       padding-bottom: calc(24px + env(safe-area-inset-bottom));
     }
     .card {
-      width: min(100%, 900px);
+      width: min(100%, 980px);
       background: rgba(17, 24, 39, 0.9);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 24px;
@@ -41,10 +41,23 @@
     }
     h1 { margin: 0 0 8px; font-size: 2rem; }
     p { color: var(--muted); margin: 0 0 24px; }
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .hero h1 { font-size: 2.2rem; }
+    .hero p { margin-bottom: 0; }
     .auth-panel {
       display: grid;
       gap: 12px;
       margin-bottom: 24px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 16px;
     }
     .auth-panel form {
       display: grid;
@@ -72,11 +85,39 @@
       min-height: 20px;
       font-size: 0.95rem;
     }
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .metric {
+      background: rgba(255,255,255,0.05);
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .metric .label { color: var(--muted); font-size: 0.85rem; }
+    .metric .value { font-size: 1.15rem; font-weight: bold; margin-top: 4px; }
     .cube-stage {
       display: flex;
       justify-content: center;
       align-items: center;
       min-height: 320px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 20px;
+      padding: 16px;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .actions button {
+      min-width: 92px;
     }
     .cube {
       width: 220px;
@@ -105,8 +146,13 @@
 </head>
 <body>
   <main class="card">
-    <h1>Rubik BCD</h1>
-    <p>Inscrivez-vous une seule fois, puis jouez localement sans dépendre d’Internet.</p>
+    <section class="hero">
+      <div>
+        <h1>Rubik BCD</h1>
+        <p>Un cube de Rubik moderne, pensé pour être joué sur mobile, avec une première inscription locale et une expérience plus fluide.</p>
+      </div>
+      <div class="status" id="status">Prêt à créer votre compte local.</div>
+    </section>
     <section class="auth-panel">
       <form id="auth-form">
         <input id="nom" placeholder="Nom" required />
@@ -114,13 +160,23 @@
         <input id="password" type="password" placeholder="Mot de passe" required />
         <button type="submit">S'inscrire / Se connecter</button>
       </form>
-      <div id="status" class="status">Prêt à créer votre compte local.</div>
+    </section>
+    <section class="dashboard" id="dashboard">
+      <div class="metric"><div class="label">Joueur</div><div class="value" id="player-name">—</div></div>
+      <div class="metric"><div class="label">Meilleur score</div><div class="value" id="best-score">0</div></div>
+      <div class="metric"><div class="label">Parties résolues</div><div class="value" id="solved-count">0</div></div>
+      <div class="metric"><div class="label">Statut</div><div class="value" id="game-status">Prêt</div></div>
     </section>
     <section class="cube-stage">
       <div class="cube" aria-label="Cube de Rubik">
         <div class="face"></div><div class="face"></div><div class="face"></div>
         <div class="face"></div><div class="face"></div><div class="face"></div>
         <div class="face"></div><div class="face"></div><div class="face"></div>
+      </div>
+      <div class="actions">
+        <button type="button" id="shuffle-btn">Mélanger</button>
+        <button type="button" id="solve-btn">Résoudre</button>
+        <button type="button" id="score-btn">Enregistrer</button>
       </div>
     </section>
   </main>
@@ -133,6 +189,36 @@
 
     const form = document.getElementById('auth-form');
     const status = document.getElementById('status');
+    const playerName = document.getElementById('player-name');
+    const bestScore = document.getElementById('best-score');
+    const solvedCount = document.getElementById('solved-count');
+    const gameStatus = document.getElementById('game-status');
+    const shuffleBtn = document.getElementById('shuffle-btn');
+    const solveBtn = document.getElementById('solve-btn');
+    const scoreBtn = document.getElementById('score-btn');
+
+    const token = localStorage.getItem('rubikbcd_token');
+    if (token) {
+      loadProfile();
+    }
+
+    async function loadProfile() {
+      try {
+        const res = await fetch('/api/profil', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          playerName.textContent = data.user.nom;
+          bestScore.textContent = data.best_score;
+          solvedCount.textContent = data.solved_count;
+          gameStatus.textContent = 'Connecté';
+          status.textContent = `Bienvenue ${data.user.nom} !`;
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
 
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
@@ -162,7 +248,43 @@
         if (!loginRes.ok) throw new Error(loginData.error || 'Erreur de connexion');
 
         localStorage.setItem('rubikbcd_token', loginData.access_token);
-        status.textContent = `Bienvenue ${loginData.user.nom || email} ! Vous pouvez maintenant jouer hors ligne.`;
+        status.textContent = `Bienvenue ${loginData.user.nom || email} !`;
+        await loadProfile();
+      } catch (error) {
+        status.textContent = error.message;
+      }
+    });
+
+    shuffleBtn.addEventListener('click', () => {
+      gameStatus.textContent = 'Mélange en cours';
+      status.textContent = 'Le cube a été mélangé pour une nouvelle partie.';
+    });
+
+    solveBtn.addEventListener('click', async () => {
+      gameStatus.textContent = 'Résolution';
+      status.textContent = 'La résolution du cube est en cours.';
+    });
+
+    scoreBtn.addEventListener('click', async () => {
+      if (!token) {
+        status.textContent = 'Veuillez d’abord vous connecter.';
+        return;
+      }
+      try {
+        const res = await fetch('/api/cube/play', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ moves: ['F', 'U', 'R'] })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          gameStatus.textContent = data.state.is_solved ? 'Résolu' : 'En cours';
+          status.textContent = `Partie enregistrée avec ${data.move_count} mouvements.`;
+          await loadProfile();
+        }
       } catch (error) {
         status.textContent = error.message;
       }
