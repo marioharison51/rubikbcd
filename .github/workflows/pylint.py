@@ -16,7 +16,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+    python -m pip install --upgrade pip
+    pip install pylint flask flask-cors flask-sqlalchemy flask-jwt-extended python-dotenv bcrypt
           pip install pylint
       - name: Analysing the code with pylint
         run: |
